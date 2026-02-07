@@ -1,0 +1,626 @@
+1) 任务拆解与任务分发方案（Process + Data Model）
+1.1 核心目标
+
+把宿主指令（用户/系统）变成可执行的任务 DAG（有依赖、有验收标准）。
+
+分发到不同 worker（工具/子 agent/服务），并能重试、降级、回滚。
+
+全流程可审计（为什么这么拆、为什么这么派、为什么这么判定完成）。
+
+1.2 关键对象（建议最少字段）
+Goal（顶层目标）
+
+goal_id
+
+statement：宿主原始目标
+
+constraints：硬约束（时间/格式/安全/成本/禁止项）
+
+definition_of_done：完成判据（DoD）
+
+Task（最小可执行单元）
+
+task_id
+
+type：plan | research | compute | write | code | verify | review | publish
+
+input_contract：输入契约（字段、类型、来源）
+
+output_contract：输出契约（字段、类型、质量门槛）
+
+acceptance_tests：验收测试（断言/检查项/示例）
+
+dependencies：依赖 task_id 列表
+
+tool_requirements：需要工具/权限
+
+risk_level：low|med|high
+
+fallbacks：失败降级策略
+
+WorkItem（调度执行载体）
+
+task_id
+
+attempt
+
+assigned_to：worker 名称
+
+lease_until：租约（避免重复执行）
+
+status：queued|running|blocked|failed|done
+
+artifacts：产物引用（文件/表/日志/证据）
+
+1.3 拆解规则（可执行的 heuristic）
+
+目标：让拆解稳定、可复用、可验收，而不是“想当然”。
+
+先写 DoD，再拆任务
+
+DoD 必须可测：输出结构、数量、质量阈值、引用证据、边界条件。
+
+任务拆到“单一主工具/单一主技能”
+
+一个 task 尽量只依赖 1 个主要工具（或 1 个子 agent 能力），否则后续排查困难。
+
+每个 task 都要自带验收测试
+
+验收不靠“感觉”。至少：结构校验 + 关键断言 + 失败示例。
+
+先拆依赖，再拆并行
+
+先确定关键路径（critical path），再把可并行的 research/verify 分出去。
+
+对不确定性拆“探测任务”
+
+不确定：先做 research/probe，产出清晰输入契约，再进入后续 code/write.
+
+1.4 分发策略（Routing Policy）
+Worker 分类
+
+planner：只产出 DAG 与契约
+
+researcher：检索/资料整理（带引用）
+
+implementer：写代码/配置
+
+tester：写测试、跑用例、做覆盖率
+
+reviewer：审查（安全、风格、架构、边界）
+
+publisher：产物汇总、格式化输出
+
+路由规则（简单可落地）
+
+type=plan -> planner
+
+type=research -> researcher
+
+type=code -> implementer + 依赖 tester
+
+risk=high -> 强制 reviewer + 双重验证
+
+verify/review 永远不与 implement 同 worker（避免自证）
+
+2) 一套代码实现（可落地骨架，Python + FastAPI + Redis 可选）
+
+目标：给你一个“能跑起来”的最小系统：DAG 任务、队列、worker、证据、验收。
+不写花哨框架，保证清晰可扩展。
+
+2.1 目录结构（强目录骨架）
+agent_orchestrator/
+  README.md
+  pyproject.toml
+  src/
+    orchestrator/
+      __init__.py
+      api.py
+      models.py
+      planner.py
+      router.py
+      executor.py
+      validators.py
+      store.py
+      workers/
+        __init__.py
+        base.py
+        planner_worker.py
+        implementer_worker.py
+        tester_worker.py
+        reviewer_worker.py
+      tools/
+        __init__.py
+        tool_registry.py
+        shell_tool.py
+      runtime/
+        __init__.py
+        queue.py
+        scheduler.py
+        locks.py
+  tests/
+    test_planner.py
+    test_dag.py
+    test_acceptance.py
+
+2.2 关键模块代码（最小可用实现）
+
+下面代码是完整骨架（可复制）。依赖：fastapi, pydantic, uvicorn。
+队列先用内存实现；后续可替换 Redis/RQ/Celery。
+
+# src/orchestrator/models.py
+from __future__ import annotations
+from typing import Any, Dict, List, Literal, Optional
+from pydantic import BaseModel, Field
+
+TaskType = Literal["plan", "research", "compute", "write", "code", "verify", "review", "publish"]
+Status = Literal["queued", "running", "blocked", "failed", "done"]
+
+class AcceptanceTest(BaseModel):
+    name: str
+    kind: Literal["schema", "assert", "example"]
+    rule: Dict[str, Any]  # e.g. {"must_contain": ["foo"], "min_items": 5}
+
+class Task(BaseModel):
+    task_id: str
+    type: TaskType
+    title: str
+    input_contract: Dict[str, Any] = Field(default_factory=dict)
+    output_contract: Dict[str, Any] = Field(default_factory=dict)
+    acceptance_tests: List[AcceptanceTest] = Field(default_factory=list)
+    dependencies: List[str] = Field(default_factory=list)
+    tool_requirements: List[str] = Field(default_factory=list)
+    risk_level: Literal["low", "med", "high"] = "low"
+    fallbacks: List[Dict[str, Any]] = Field(default_factory=list)
+
+class Goal(BaseModel):
+    goal_id: str
+    statement: str
+    constraints: Dict[str, Any] = Field(default_factory=dict)
+    definition_of_done: Dict[str, Any] = Field(default_factory=dict)
+
+class WorkItem(BaseModel):
+    task_id: str
+    attempt: int = 0
+    assigned_to: str
+    status: Status = "queued"
+    lease_until: Optional[float] = None
+    artifacts: Dict[str, Any] = Field(default_factory=dict)
+    logs: List[str] = Field(default_factory=list)
+
+class ExecutionState(BaseModel):
+    goal: Goal
+    tasks: Dict[str, Task]
+    work: Dict[str, WorkItem] = Field(default_factory=dict)  # key=task_id
+    results: Dict[str, Any] = Field(default_factory=dict)    # key=task_id -> output
+
+# src/orchestrator/runtime/queue.py
+from __future__ import annotations
+from dataclasses import dataclass
+from typing import Deque, Optional
+from collections import deque
+import threading
+
+@dataclass
+class QueueItem:
+    task_id: str
+
+class InMemoryQueue:
+    def __init__(self) -> None:
+        self._q: Deque[QueueItem] = deque()
+        self._lock = threading.Lock()
+
+    def push(self, item: QueueItem) -> None:
+        with self._lock:
+            self._q.append(item)
+
+    def pop(self) -> Optional[QueueItem]:
+        with self._lock:
+            if not self._q:
+                return None
+            return self._q.popleft()
+
+    def __len__(self) -> int:
+        with self._lock:
+            return len(self._q)
+
+# src/orchestrator/router.py
+from __future__ import annotations
+from orchestrator.models import Task
+
+def route(task: Task) -> str:
+    # simple deterministic router
+    if task.type == "plan":
+        return "planner"
+    if task.type in ("code", "write", "compute"):
+        return "implementer"
+    if task.type in ("verify",):
+        return "tester"
+    if task.type in ("review",):
+        return "reviewer"
+    if task.type in ("research",):
+        return "researcher"
+    return "implementer"
+
+# src/orchestrator/validators.py
+from __future__ import annotations
+from typing import Any, Dict
+from orchestrator.models import Task, AcceptanceTest
+
+class ValidationError(Exception):
+    pass
+
+def run_acceptance(task: Task, output: Any) -> None:
+    for t in task.acceptance_tests:
+        if t.kind == "assert":
+            _run_assert(t, output)
+        elif t.kind == "schema":
+            _run_schema(t, output)
+        elif t.kind == "example":
+            _run_example(t, output)
+
+def _run_assert(test: AcceptanceTest, output: Any) -> None:
+    rule = test.rule
+    if "must_contain" in rule:
+        for s in rule["must_contain"]:
+            if isinstance(output, str):
+                if s not in output:
+                    raise ValidationError(f"{test.name}: missing '{s}'")
+            elif isinstance(output, dict):
+                if s not in output:
+                    raise ValidationError(f"{test.name}: missing key '{s}'")
+
+def _run_schema(test: AcceptanceTest, output: Any) -> None:
+    rule = test.rule
+    if rule.get("type") == "list":
+        if not isinstance(output, list):
+            raise ValidationError(f"{test.name}: output not list")
+        min_items = rule.get("min_items")
+        if min_items is not None and len(output) < min_items:
+            raise ValidationError(f"{test.name}: len < {min_items}")
+
+def _run_example(test: AcceptanceTest, output: Any) -> None:
+    # placeholder: you can add golden examples diff here
+    return
+
+# src/orchestrator/workers/base.py
+from __future__ import annotations
+from abc import ABC, abstractmethod
+from orchestrator.models import Task, ExecutionState
+
+class Worker(ABC):
+    name: str
+
+    @abstractmethod
+    def run(self, state: ExecutionState, task: Task) -> object:
+        raise NotImplementedError
+
+# src/orchestrator/workers/planner_worker.py
+from __future__ import annotations
+from orchestrator.workers.base import Worker
+from orchestrator.models import Task, ExecutionState
+
+class PlannerWorker(Worker):
+    name = "planner"
+
+    def run(self, state: ExecutionState, task: Task) -> object:
+        # In real system: call LLM planner. Here: return a stub plan artifact.
+        return {
+            "plan_summary": "stub plan",
+            "notes": "replace with real planner output"
+        }
+
+# src/orchestrator/workers/implementer_worker.py
+from __future__ import annotations
+from orchestrator.workers.base import Worker
+from orchestrator.models import Task, ExecutionState
+
+class ImplementerWorker(Worker):
+    name = "implementer"
+
+    def run(self, state: ExecutionState, task: Task) -> object:
+        # stub: produce placeholder output
+        return {"result": f"implemented {task.title}"}
+
+# src/orchestrator/workers/tester_worker.py
+from __future__ import annotations
+from orchestrator.workers.base import Worker
+from orchestrator.models import Task, ExecutionState
+
+class TesterWorker(Worker):
+    name = "tester"
+
+    def run(self, state: ExecutionState, task: Task) -> object:
+        # stub: could run unit tests or validation; here return ok.
+        return {"tests": "passed"}
+
+# src/orchestrator/workers/reviewer_worker.py
+from __future__ import annotations
+from orchestrator.workers.base import Worker
+from orchestrator.models import Task, ExecutionState
+
+class ReviewerWorker(Worker):
+    name = "reviewer"
+
+    def run(self, state: ExecutionState, task: Task) -> object:
+        # stub: could run lint/security checks; here return ok.
+        return {"review": "approved"}
+
+# src/orchestrator/executor.py
+from __future__ import annotations
+from typing import Dict
+from orchestrator.models import ExecutionState, Task
+from orchestrator.runtime.queue import InMemoryQueue, QueueItem
+from orchestrator.router import route
+from orchestrator.validators import run_acceptance, ValidationError
+from orchestrator.workers.planner_worker import PlannerWorker
+from orchestrator.workers.implementer_worker import ImplementerWorker
+from orchestrator.workers.tester_worker import TesterWorker
+from orchestrator.workers.reviewer_worker import ReviewerWorker
+
+WORKERS = {
+    "planner": PlannerWorker(),
+    "implementer": ImplementerWorker(),
+    "tester": TesterWorker(),
+    "reviewer": ReviewerWorker(),
+    "researcher": ImplementerWorker(),  # placeholder
+}
+
+class Orchestrator:
+    def __init__(self) -> None:
+        self.q = InMemoryQueue()
+
+    def enqueue_ready(self, state: ExecutionState) -> None:
+        for task_id, task in state.tasks.items():
+            if task_id in state.work:
+                continue
+            if all(dep in state.results for dep in task.dependencies):
+                self.q.push(QueueItem(task_id=task_id))
+                state.work[task_id] = state.work.get(task_id) or None  # mark seen
+
+    def step(self, state: ExecutionState) -> None:
+        item = self.q.pop()
+        if item is None:
+            return
+        task: Task = state.tasks[item.task_id]
+        worker_name = route(task)
+        worker = WORKERS[worker_name]
+        output = worker.run(state, task)
+
+        # validate
+        try:
+            run_acceptance(task, output)
+        except ValidationError as e:
+            raise RuntimeError(f"Task {task.task_id} failed acceptance: {e}") from e
+
+        state.results[task.task_id] = output
+
+    def run_until_done(self, state: ExecutionState, max_steps: int = 1000) -> ExecutionState:
+        steps = 0
+        while steps < max_steps:
+            self.enqueue_ready(state)
+            if len(self.q) == 0:
+                break
+            self.step(state)
+            steps += 1
+        return state
+
+# src/orchestrator/api.py
+from __future__ import annotations
+from fastapi import FastAPI
+from orchestrator.models import Goal, Task, ExecutionState
+from orchestrator.executor import Orchestrator
+
+app = FastAPI()
+orch = Orchestrator()
+
+@app.post("/run")
+def run(goal: Goal, tasks: list[Task]):
+    state = ExecutionState(goal=goal, tasks={t.task_id: t for t in tasks})
+    state = orch.run_until_done(state)
+    return {"goal_id": goal.goal_id, "results": state.results}
+
+2.3 这套系统怎么扩展到“真实 agent”
+
+把 PlannerWorker.run() 替换成：LLM 产出 DAG（Task 列表）+ 合同 + 验收测试。
+
+把 ImplementerWorker / TesterWorker 接上工具（代码生成、执行、单测、静态检查）。
+
+validators 加强：结构校验、引用检查、风险项检查、成本限制。
+
+3) 代码审核 / 测试 / 验收方案（Checklist + Gate）
+3.1 审核维度（必须可打钩）
+架构
+
+ 模块边界清晰：planner/router/executor/validators 解耦
+
+ 状态可序列化：ExecutionState 可持久化/回放
+
+ 可观测性：每个 task 有 logs/证据/产物引用
+
+ 幂等性：同一 task 多次执行不会污染状态（或有去重）
+
+安全
+
+ 工具权限最小化（尤其 shell/文件/网络）
+
+ 输入输出净化（防 prompt injection / 恶意 payload）
+
+ 产物审计：谁生成、何时、依据是什么
+
+ 高风险任务必须 reviewer gate
+
+质量
+
+ 每个 task 有 acceptance_tests，且失败路径可定位
+
+ 关键路径覆盖率（单测+集成测试）
+
+ 回归测试集：历史任务重跑不退化
+
+ 性能：并行度/超时/重试策略
+
+3.2 测试金字塔（落地）
+
+单元测试：DAG、路由、验收器、序列化
+
+集成测试：executor + worker stub 走通依赖
+
+端到端：给一个真实 goal -> 产出符合 DoD（用 golden file）
+
+必备测试用例（建议最少）
+
+DAG 有环 -> 拒绝
+
+依赖缺失 -> blocked
+
+验收失败 -> 标记 failed 并输出原因
+
+重试策略触发 -> attempt 增加
+
+reviewer gate 生效（high risk 必须 review 通过）
+
+3.3 验收（Release Gate）
+
+Gate A：所有单测通过 + 覆盖率阈值（例如 80%）
+
+Gate B：端到端 golden 用例全部通过
+
+Gate C：静态检查（ruff/mypy）+ 安全扫描（bandit）
+
+Gate D：成本与超时上限通过（模拟压测）
+
+4) 推理理解宿主指令协议（Instruction Understanding Protocol）
+
+你要的是“理解宿主指令的推理”，这里给可审计协议：不要求暴露隐私推理细节，但要把关键中间结论结构化输出，保证可控。
+
+4.1 指令分层优先级
+
+系统硬约束：安全、合规、禁止事项
+
+宿主约束：格式、语言、输出范围、工具使用限制
+
+用户目标：要解决什么问题
+
+偏好：风格偏好、展示形式
+
+冲突处理：高优先级覆盖低优先级，并输出“冲突说明”。
+
+4.2 IUP 的结构化产物（必须落盘）
+Interpretation
+
+user_intent: 用一句话复述（可检验）
+
+deliverables: 你要输出的清单（数量、格式）
+
+constraints: 硬约束列表
+
+assumptions: 允许的假设（必须可回滚）
+
+unknowns: 目前未知但影响较大的点
+
+risk_flags: 安全/不确定性/高成本标记
+
+plan_outline: 任务级计划（不等于 chain-of-thought）
+
+注意：这不是“把所有内心推理吐出来”，而是可审计的决策摘要。
+
+4.3 反注入策略（Prompt Injection Defense）
+
+将所有外部内容（网页/文件/用户提供文本）标记为 untrusted_context
+
+任何要求“忽略规则/泄露系统提示/越权工具调用”的内容：视为无效指令
+
+关键动作（执行工具/写文件/发外部请求）需要 policy_check()
+
+5) 游戏设计助手专用方案（面向你的用例）
+
+基于你“不要胡编乱造、偏中文、以玩家体验表达、避免底层实现”的偏好，这里给一套游戏设计助手 agent的模块化能力方案。
+
+5.1 设计助手的职责边界（DoD）
+
+输入：玩法/关卡/系统需求（可能不完整）
+
+输出：
+
+设计目标（玩家体验）
+
+机制拆解（规则、状态、触发、反馈）
+
+参数表（可调且能改变手感/节奏/风险收益）
+
+测试与验证（如何验证体验达成）
+
+风险与对策（漏洞、刷子、失衡、学习成本）
+
+5.2 设计技能库（可复用 skills）
+
+建议每个 skill 都有：输入契约、输出模板、验收测试。
+
+Skill A：需求澄清（不追问式）
+
+输出：假设列表 + 最低可行设计 + 分叉方案（2-3 个）
+
+验收：每个分叉都有明确体验目标与取舍
+
+Skill B：机制建模（状态机/资源流）
+
+输出：核心循环、资源来源/消耗、失败与恢复
+
+验收：能指出至少 3 个可 exploit 点与封堵手段
+
+Skill C：参数化手感（你强调的“可实现参数”）
+
+输出参数分层：
+
+响应层：前摇/后摇、输入缓冲、取消窗口、受击硬直
+
+节奏层：收益频率、冷却、资源回转、遭遇间隔
+
+风险层：容错（无敌帧/护盾/回血）、失败惩罚、回滚成本
+
+反馈层：击中停顿、镜头震动幅度等级、音画提示强度等级（不谈实现，只谈可调项）
+
+验收：每类至少给 3 个参数，并说明“变大/变小会怎样”
+
+Skill D：关卡/BOSS 设计结构化输出
+
+输出：
+
+阶段目标（P1/P2/P3）
+
+玩家读招（telegraph）与反制窗口
+
+难度曲线（强度峰值点）
+
+奖励与节奏（540 秒上限等约束）
+
+验收：每阶段至少 1 个“学习点”、1 个“熟练点”、1 个“惩罚点”
+
+Skill E：验证与 playtest 计划
+
+输出：可观测指标（死亡原因分布、技能使用率、耗时分布）
+
+验收：指标与体验目标一一对应（比如“紧张感”对应血量波动/濒死次数等）
+
+5.3 记忆与知识组织（强目录 + 可追溯）
+
+design_principles/：你的设计原则与风格口径（长期）
+
+project_rules/：项目硬约束（如副本 540 秒上限）
+
+boss_library/：boss 分组、机制标签、数值段位、读招模式
+
+playtest/：每次测试数据与结论（版本号）
+
+decisions/：关键决策记录（原因、替代方案、影响面）
+
+5.4 输出模板（默认中文、玩家视角）
+
+“玩家感受”段：我看到了什么、我该怎么做、我犯错会怎样
+
+“设计意图”段：想达到什么效果
+
+“参数旋钮”段：调这个会让体验更偏向什么
+
+“验证方法”段：怎么确认真的达到了

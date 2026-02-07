@@ -1,0 +1,33 @@
+# Plan22 详情（与主计划对齐）
+
+- 对应主计划：Training_Manual/Plan22
+- 主计划标题：Plan22 核心-指令型：可靠性工程机制（Chaos + Auto Recovery）
+
+## 核心要点索引（来自主计划）
+3:1. 目标
+6:2. 核心机制
+
+## 计划原文摘录
+Plan22 核心-指令型：可靠性工程机制（Chaos + Auto Recovery）
+
+1. 目标
+- 提升系统在异常场景下的可恢复能力与可预测性。
+
+2. 核心机制
+- 混沌注入：按计划注入进程退出、网络抖动、IO 限速、时钟跳变。
+- 自动恢复：基于故障类型执行 restart/retry/fallback/rollback。
+- 稳态守护：关键链路健康检查（scheduler/orchestrator/memory/search）。
+
+3. 策略
+- 故障分级：P0/P1/P2/P3。
+- 恢复时限：P0 1分钟内进入降级，5分钟内恢复基本可用。
+- 自动回滚：策略更新导致错误率升高立即回滚上个稳定版本。
+
+4. 持久化
+- `reliability_incidents`：故障事件、根因、修复动作。
+- `chaos_runs`：注入场景与结果。
+- `recovery_actions`：自动恢复链路审计。
+
+5. 验收
+- 每周混沌演练通过率 >= 95%。
+- MTTR 持续下降。

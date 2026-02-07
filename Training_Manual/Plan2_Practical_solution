@@ -1,0 +1,481 @@
+Cognitive Engine（认知引擎）
+1. 架构概述
+1.1 核心思想
+将 Cognitive Memory Stack 从被动调用升级为主动驱动的底层系统：
+
+传统模式：用户输入 → 调用技能 → 输出回答
+自动模式：感知输入 → 认知引擎决策 → 自动执行 S1/S2 → 输出 + 自我学习
+1.2 五层架构
+┌─────────────────────────────────────────────────────────────────┐
+│  Layer 5: 元认知层 (Metacognition)                               │
+│  ├── 性能监控：S1/S2 效率追踪                                    │
+│  ├── 策略优化：Gate 阈值自适应调整                               │
+│  └── 知识缺口识别：主动建议学习方向                              │
+├─────────────────────────────────────────────────────────────────┤
+│  Layer 4: 决策层 (Decision)                                      │
+│  ├── 深度决策器：NeedSlow 判定                                   │
+│  ├── 模式选择器：S1/S2/混合 模式选择                             │
+│  └── 资源分配器：Token/时间预算分配                              │
+├─────────────────────────────────────────────────────────────────┤
+│  Layer 3: 执行层 (Execution)                                     │
+│  ├── S1 执行器：FastDraft 自动化                                 │
+│  ├── S2 执行器：SlowChallenge 自动化                             │
+│  └── 冲突裁决器：自动/人工裁决路由                               │
+├─────────────────────────────────────────────────────────────────┤
+│  Layer 2: 记忆层 (Memory)                                        │
+│  ├── 上下文构建：自动检索 + 压缩                                 │
+│  ├── 记忆摄入：对话后自动处理 Delta                              │
+│  └── 知识整理：周期性总结 + 归档                                 │
+├─────────────────────────────────────────────────────────────────┤
+│  Layer 1: 感知层 (Perception)                                    │
+│  ├── 输入分类器：任务类型识别                                    │
+│  ├── 复杂度评估：自动计算复杂度得分                              │
+│  └── 紧急度检测：是否需要立即响应                                │
+└─────────────────────────────────────────────────────────────────┘
+1.3 自动触发机制
+触发源	触发条件	执行动作
+用户输入	每次消息	感知层 → 决策层 → 执行层
+定时任务	每15分钟	元认知反思 + 知识整理
+记忆阈值	新增10条记忆	自动构建快照 + 更新索引
+冲突检测	发现原则冲突	自动标记 + 延迟裁决请求
+性能下降	S1 准确率 < 80%	自动触发策略优化
+2. 分层详细设计
+2.1 感知层 (Perception Layer)
+自动分析每个输入，提取认知特征：
+
+class PerceptionAnalyzer:
+    def analyze(self, user_input: str, context: Dict) -> CognitiveProfile:
+        return CognitiveProfile(
+            # 任务类型（自动分类）
+            task_type=self._classify_task(user_input),
+            
+            # 复杂度评分（0-10）
+            complexity_score=self._calc_complexity(user_input),
+            
+            # 知识依赖度（需要多少背景知识）
+            knowledge_dependency=self._assess_knowledge_need(user_input),
+            
+            # 紧急度（是否需要立即响应）
+            urgency=self._detect_urgency(user_input),
+            
+            # 情感标记（是否涉及敏感话题）
+            sentiment=self._analyze_sentiment(user_input),
+            
+            # 预测置信度（S1 能否处理好）
+            predicted_s1_confidence=self._predict_s1_performance(user_input)
+        )
+任务分类器：
+
+类型	特征关键词	默认模式
+factual_query	"是什么", "多少", "公式"	S1
+creative_design	"设计", "方案", "创新"	S1 → S2
+decision_support	"建议", "选择", "对比"	S2
+conflict_resolution	"冲突", "矛盾", "裁决"	S2
+learning_task	"学习", "研究", "总结"	S1 → 定时S2
+routine_task	"检查", "汇报", "整理"	S1
+2.2 记忆层 (Memory Layer)
+自动管理记忆生命周期：
+
+class AutoMemoryManager:
+    """自动记忆管理器"""
+    
+    def pre_turn(self, query: str) -> ContextPacket:
+        """自动构建上下文包"""
+        # 1. 混合检索
+        memories = self._hybrid_retrieve(query)
+        
+        # 2. 动态预算分配
+        budget = self._allocate_budget(query)
+        
+        # 3. 智能压缩
+        packet = self._compress(memories, budget)
+        
+        # 4. 冲突预检测
+        packet.conflicts = self._pre_detect_conflicts(packet)
+        
+        return packet
+    
+    def post_turn(self, query: str, answer: str, metadata: Dict):
+        """自动摄入记忆"""
+        delta = self._generate_delta(query, answer, metadata)
+        self._ingest_delta(delta)
+        
+        # 触发条件检查
+        if self._should_build_snapshot():
+            self._trigger_snapshot_build()
+    
+    def periodic_maintenance(self):
+        """周期性维护（定时触发）"""
+        # 1. 记忆整理
+        self._consolidate_memories()
+        
+        # 2. 过期清理
+        self._archive_old_memories()
+        
+        # 3. 索引优化
+        self._optimize_indexes()
+        
+        # 4. 知识图谱更新
+        self._update_knowledge_graph()
+2.3 执行层 (Execution Layer)
+自动执行 S1/S2 流程：
+
+class AutoExecutor:
+    def execute(self, query: str, profile: CognitiveProfile) -> ExecutionResult:
+        # Step 1: 构建上下文
+        context = memory_layer.pre_turn(query)
+        
+        if context.blocked:
+            return self._handle_blocked_context(context)
+        
+        # Step 2: S1 FastDraft（自动执行）
+        draft = self._auto_s1(query, context)
+        
+        # Step 3: Gate 判定（自动决策）
+        need_slow = decision_layer.need_slow(draft, profile)
+        
+        if not need_slow:
+            # S1 直接输出
+            result = self._finalize_s1(draft)
+        else:
+            # Step 4: S2 SlowChallenge（自动执行）
+            review = self._auto_s2(draft, context)
+            result = self._finalize_s2(review)
+        
+        # Step 5: 自动摄入
+        memory_layer.post_turn(query, result.answer, result.metadata)
+        
+        return result
+自动 S1 执行：
+
+意图解析自动化
+检索参数自适应
+Draft 生成 + Claims 抽取（无需人工干预）
+自动 S2 执行：
+
+质疑清单自动生成
+证据自动检索（缩小范围）
+冲突自动裁决（按优先级）
+修正自动应用
+2.4 决策层 (Decision Layer)
+智能决策引擎：
+
+class DecisionEngine:
+    def need_slow(self, draft: DraftPack, profile: CognitiveProfile) -> Decision:
+        """多层决策模型"""
+        
+        # Layer 1: 硬规则（必须进入 S2）
+        if draft.meta.confidence < 0.6:
+            return Decision.YES_S2("置信度过低")
+        if draft.meta.conflict_count > 0:
+            return Decision.YES_S2("存在冲突")
+        
+        # Layer 2: 任务类型规则
+        if profile.task_type in ["decision_support", "conflict_resolution"]:
+            return Decision.YES_S2("任务类型要求深度思考")
+        
+        # Layer 3: 复杂度模型
+        if profile.complexity_score > 7:
+            return Decision.YES_S2("高复杂度任务")
+        
+        # Layer 4: 预测模型（历史数据驱动）
+        historical_success = self._check_historical_performance(
+            profile.task_type, 
+            draft.meta
+        )
+        if historical_success < 0.8:
+            return Decision.YES_S2("历史成功率低")
+        
+        # Layer 5: 成本收益分析
+        cost_benefit = self._calc_cost_benefit(draft, profile)
+        if cost_benefit > 1.5:  # 收益 > 成本
+            return Decision.YES_S2("成本收益比 favorable")
+        
+        return Decision.NO_S1("S1 足够可靠")
+2.5 元认知层 (Metacognition Layer)
+自我监控与优化：
+
+class MetacognitiveMonitor:
+    """元认知监控器 - 每15分钟自动运行"""
+    
+    def periodic_reflection(self):
+        """周期性反思"""
+        report = {
+            "timestamp": now(),
+            "period": "15min",
+            
+            # 性能统计
+            "s1_stats": self._analyze_s1_performance(),
+            "s2_stats": self._analyze_s2_performance(),
+            "gate_accuracy": self._evaluate_gate_decisions(),
+            
+            # 记忆健康
+            "memory_health": self._check_memory_health(),
+            "knowledge_gaps": self._identify_knowledge_gaps(),
+            
+            # 策略建议
+            "recommendations": self._generate_recommendations()
+        }
+        
+        # 自动应用优化建议
+        self._apply_optimizations(report.recommendations)
+        
+        # 汇报（如果重要）
+        if report.has_significant_findings():
+            self._notify_user(report.summary())
+    
+    def _analyze_s1_performance(self) -> S1Stats:
+        """分析 S1 性能"""
+        recent_turns = get_recent_turns(minutes=15)
+        
+        return S1Stats(
+            total_s1=count_s1_executions(recent_turns),
+            avg_confidence=avg([t.s1_confidence for t in recent_turns]),
+            correction_rate=count_s1_corrected_by_s2(recent_turns) / len(recent_turns),
+            common_failures=self._identify_s1_failure_patterns(recent_turns)
+        )
+    
+    def _generate_recommendations(self) -> List[Recommendation]:
+        """生成优化建议"""
+        recommendations = []
+        
+        # 如果 S1 修正率 > 30%，建议降低 Gate 阈值
+        if self.s1_stats.correction_rate > 0.3:
+            recommendations.append(
+                Recommendation(
+                    type="gate_threshold",
+                    action="lower",
+                    reason="S1 修正率过高，应更早触发 S2",
+                    auto_apply=True
+                )
+            )
+        
+        # 如果发现知识缺口
+        gaps = self.knowledge_gaps
+        if gaps:
+            recommendations.append(
+                Recommendation(
+                    type="learning_task",
+                    action="schedule_learning",
+                    target=gaps,
+                    reason="检测到知识缺口，建议安排学习",
+                    auto_apply=False  # 需要用户确认
+                )
+            )
+        
+        return recommendations
+3. 自动触发机制详解
+3.1 输入触发（Input-Driven）
+每个用户输入自动触发完整流程：
+
+用户输入
+    │
+    ▼
+┌────────────────────────────────────────┐
+│ 感知层：提取认知特征（<50ms）           │
+│ - 任务分类 + 复杂度评分                 │
+└────────────────────────────────────────┘
+    │
+    ▼
+┌────────────────────────────────────────┐
+│ 记忆层：自动构建上下文（<200ms）        │
+│ - 检索 + 压缩 + 冲突预检测              │
+└────────────────────────────────────────┘
+    │
+    ▼
+┌────────────────────────────────────────┐
+│ 决策层：模式选择（<10ms）               │
+│ - S1 only / S1→S2 / S2 only            │
+└────────────────────────────────────────┘
+    │
+    ▼
+┌────────────────────────────────────────┐
+│ 执行层：自动执行（可变）                 │
+│ - S1: 快速生成                          │
+│ - S2: 深度思考（如果需要）               │
+└────────────────────────────────────────┘
+    │
+    ▼
+┌────────────────────────────────────────┐
+│ 记忆层：自动摄入（后台异步）             │
+│ - 生成 Delta + 更新索引                 │
+└────────────────────────────────────────┘
+3.2 定时触发（Cron-Driven）
+每15分钟自动运行元认知任务：
+
+CRON_SCHEDULE = "*/15 * * * *"
+
+def cognitive_maintenance_job():
+    """认知维护定时任务"""
+    
+    # 1. 性能分析（元认知层）
+    metacognition.periodic_reflection()
+    
+    # 2. 记忆整理（记忆层）
+    memory_layer.periodic_maintenance()
+    
+    # 3. 知识整理（可选：每天一次深度整理）
+    if is_daily_deep_maintenance_time():
+        perform_deep_knowledge_consolidation()
+    
+    # 4. 生成成长报告（如果达到阈值）
+    if should_report_growth():
+        generate_and_send_growth_report()
+3.3 事件触发（Event-Driven）
+特定事件触发特定动作：
+
+事件	触发条件	动作
+memory_threshold	新增10条记忆	自动构建快照
+conflict_detected	发现原则冲突	标记 + 延迟裁决请求
+performance_drop	S1 准确率 < 80%	自动优化策略
+knowledge_gap	连续3次检索失败	标记为学习需求
+long_conversation	对话轮数 > 20	触发中期总结
+4. 自适应机制
+4.1 Gate 阈值自适应
+根据历史表现自动调整：
+
+class AdaptiveGate:
+    def __init__(self):
+        self.confidence_threshold = 0.7  # 初始值
+        self.learning_rate = 0.05
+    
+    def adapt(self, feedback: ExecutionFeedback):
+        """根据执行反馈调整阈值"""
+        
+        if feedback.s1_should_have_triggered_s2:
+            # S1 输出质量差，应该更早触发 S2
+            self.confidence_threshold += self.learning_rate
+            
+        elif feedback.s2_was_unnecessary:
+            # S2 过度审计，可以更信任 S1
+            self.confidence_threshold -= self.learning_rate
+        
+        # 边界保护
+        self.confidence_threshold = clamp(
+            self.confidence_threshold, 
+            min=0.5, 
+            max=0.9
+        )
+4.2 检索策略自适应
+根据任务类型优化检索：
+
+class AdaptiveRetrieval:
+    def optimize(self, task_type: str) -> RetrievalStrategy:
+        """根据历史效果优化检索策略"""
+        
+        strategies = {
+            "factual_query": {
+                "keyword_weight": 0.8,
+                "semantic_weight": 0.2,
+                "recency_boost": False
+            },
+            "creative_design": {
+                "keyword_weight": 0.3,
+                "semantic_weight": 0.7,
+                "recency_boost": True
+            },
+            "decision_support": {
+                "keyword_weight": 0.5,
+                "semantic_weight": 0.5,
+                "priority_boost": True
+            }
+        }
+        
+        # 基于历史效果微调
+        base = strategies.get(task_type, strategies["factual_query"])
+        return self._fine_tune(base, historical_performance)
+5. 与用户交互模式
+5.1 全自动模式（Silent Mode）
+用户输入 → [自动处理] → 输出结果
+
+用户感知：就像和一个更聪明的 Agent 对话
+后台：完整的 S1/S2 自动执行
+5.2 透明模式（Transparent Mode）
+用户输入 → [自动处理 + 展示思考过程] → 输出结果
+
+展示内容：
+- "🧠 感知：识别为设计类任务，复杂度 8/10"
+- "⚡ S1 生成草稿（置信度 0.65）"
+- "🤔 Gate 判定：触发 S2 深度思考"
+- "🔍 S2 发现问题：与 XX 原则冲突"
+- "✅ 已修正：[最终答案]"
+5.3 协作模式（Collaborative Mode）
+用户输入 → [自动处理到 S1] → 询问用户 → [继续 S2 或输出]
+
+适用于：
+- 高风险决策
+- 创意任务
+- 用户希望参与思考过程
+6. 实现路线图
+Phase 1: 核心引擎（Week 1-2）
+ 感知层实现（任务分类 + 复杂度评估）
+ 记忆层自动化（pre_turn + post_turn）
+ 执行层自动化（auto_s1 + auto_s2）
+ 基础决策层（硬规则 Gate）
+Phase 2: 元认知层（Week 3-4）
+ 性能监控
+ 统计收集
+ 基础自适应（阈值调整）
+ 定时任务集成
+Phase 3: 高级功能（Week 5-6）
+ 预测模型（基于历史数据）
+ 知识缺口识别
+ 主动学习建议
+ 深度知识整理
+Phase 4: 优化与稳定（Week 7-8）
+ 性能优化
+ 边界情况处理
+ 用户反馈循环
+ 文档完善
+7. 与现有系统的集成
+7.1 与 Heartbeat Engine 集成
+# 在心跳任务中加入认知维护
+def heartbeat_job():
+    # 原有：状态检查
+    check_system_health()
+    
+    # 新增：认知维护
+    cognitive_engine.metacognition.periodic_reflection()
+    
+    # 原有：汇报
+    if should_report():
+        send_report()
+7.2 与 agent-memory-stack 集成
+# 自动调用 CLI
+class AutoMemoryLayer:
+    def pre_turn(self, query):
+        # 自动构建上下文包
+        result = subprocess.run([
+            "python", "agent_memory_stack_full.py",
+            "context",
+            "--chat-name", self.current_chat,
+            "--query", query,
+            "--format", "json"
+        ], capture_output=True)
+        
+        return ContextPacket.from_json(result.stdout)
+8. 评估指标
+8.1 效率指标
+指标	目标	测量方式
+S1 占比	70-80%	S1 执行次数 / 总次数
+S2 必要性	>90%	实际进入 S2 / 应该进入 S2
+平均响应时间	<3s	从输入到输出的时间
+记忆命中率	>85%	检索到相关记忆的比例
+8.2 质量指标
+指标	目标	测量方式
+准确率	>90%	用户满意度评分
+一致性	>95%	跨会话一致性检查
+可追溯性	100%	每个主张都有来源
+冲突解决率	>80%	自动解决 / 总冲突
+8.3 成长指标
+指标	目标	测量方式
+知识覆盖率	持续增长	成功回答的问题类型数
+S1 能力提升	月度 +5%	S1 准确率增长
+自适应效果	月度优化	Gate 阈值优化程度
+9. 总结
+Cognitive Engine 将 Cognitive Memory Stack 从工具升级为底层认知基础设施：
+
+全自动化：感知 → 决策 → 执行 → 学习 的完整闭环
+自适应：根据历史表现持续优化策略
+元认知：自我监控、自我改进
+多模式：全自动 / 透明 / 协作 三种交互模式
