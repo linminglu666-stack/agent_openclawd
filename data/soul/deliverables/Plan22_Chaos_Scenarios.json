@@ -1,0 +1,92 @@
+{
+  "schema_version": "1.0",
+  "chaos_scenarios": [
+    {
+      "id": "chaos-001",
+      "name": "Scheduler进程崩溃",
+      "type": "PROCESS_EXIT",
+      "target": "scheduler",
+      "level": "P0",
+      "inject": {
+        "method": "SIGKILL",
+        "process": "scheduler"
+      },
+      "expected_recovery": {
+        "detect_time_ms": 5000,
+        "recovery_action": "restart",
+        "max_recovery_time_ms": 60000
+      }
+    },
+    {
+      "id": "chaos-002",
+      "name": "网络延迟抖动",
+      "type": "NETWORK_DELAY",
+      "target": "external_apis",
+      "level": "P1",
+      "inject": {
+        "delay_ms": "100-500",
+        "jitter": true
+      },
+      "expected_recovery": {
+        "detect_time_ms": 10000,
+        "recovery_action": "fallback_cache",
+        "max_recovery_time_ms": 30000
+      }
+    },
+    {
+      "id": "chaos-003",
+      "name": "内存压力测试",
+      "type": "MEMORY_PRESSURE",
+      "target": "agent_process",
+      "level": "P1",
+      "inject": {
+        "memory_percent": 80
+      },
+      "expected_recovery": {
+        "detect_time_ms": 30000,
+        "recovery_action": "graceful_restart",
+        "max_recovery_time_ms": 120000
+      }
+    },
+    {
+      "id": "chaos-004",
+      "name": "时钟跳变测试",
+      "type": "CLOCK_JUMP",
+      "target": "system_clock",
+      "level": "P2",
+      "inject": {
+        "jump_seconds": 600,
+        "direction": "forward"
+      },
+      "expected_recovery": {
+        "detect_time_ms": 5000,
+        "recovery_action": "sync_ntp",
+        "max_recovery_time_ms": 10000
+      }
+    },
+    {
+      "id": "chaos-005",
+      "name": "数据库慢查询",
+      "type": "DISK_SLOW",
+      "target": "persistence_layer",
+      "level": "P1",
+      "inject": {
+        "io_latency_ms": 200
+      },
+      "expected_recovery": {
+        "detect_time_ms": 20000,
+        "recovery_action": "async_write",
+        "max_recovery_time_ms": 60000
+      }
+    }
+  ],
+  "weekly_schedule": {
+    "day": "Sunday",
+    "time": "02:00",
+    "timezone": "Asia/Shanghai"
+  },
+  "success_criteria": {
+    "pass_rate": 0.95,
+    "max_failed_scenarios": 1
+  }
+}

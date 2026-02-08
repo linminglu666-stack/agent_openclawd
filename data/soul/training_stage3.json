@@ -1,0 +1,64 @@
+{
+  "stage": "stage3",
+  "stage_name": "稳态治理训练",
+  "total_days": 6,
+  "current_day": 1,
+  "current_plan": "Plan22",
+  "plan_sequence": ["Plan22", "Plan23", "Plan24", "Plan26", "Plan27", "Plan28"],
+  "completed_plans": ["Plan22"],
+  "start_date": "2026-02-08",
+  "current_date": "2026-02-08",
+  "next_plan": "Plan23",
+  "next_date": "2026-02-09",
+  "plans": {
+    "Plan22": {
+      "status": "completed",
+      "title": "可靠性工程机制（Chaos + Auto Recovery）",
+      "started_at": "2026-02-08T10:20:00+08:00",
+      "completed_at": "2026-02-08T10:21:30+08:00",
+      "deliverables": [
+        "Plan22_Reliability_Framework.md",
+        "Plan22_Chaos_Scenarios.json",
+        "Plan22_Recovery_Policies.json",
+        "Plan22_SteadyState_Guardian.py",
+        "Plan22_Reliability_Schema.sql"
+      ],
+      "metrics": {
+        "fault_levels_defined": 4,
+        "chaos_scenarios": 5,
+        "recovery_policies": 4,
+        "components_monitored": 4
+      }
+    },
+    "Plan23": {
+      "status": "pending",
+      "title": "模型路由与能耗治理",
+      "started_at": null,
+      "completed_at": null
+    },
+    "Plan24": {
+      "status": "pending",
+      "title": "缓存与复用机制",
+      "started_at": null,
+      "completed_at": null
+    },
+    "Plan26": {
+      "status": "pending",
+      "title": "质量自监督机制",
+      "started_at": null,
+      "completed_at": null
+    },
+    "Plan27": {
+      "status": "pending",
+      "title": "成本治理机制",
+      "started_at": null,
+      "completed_at": null
+    },
+    "Plan28": {
+      "status": "pending",
+      "title": "安全强化机制",
+      "started_at": null,
+      "completed_at": null
+    }
+  }
+}

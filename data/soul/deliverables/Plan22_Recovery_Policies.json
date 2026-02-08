@@ -1,0 +1,64 @@
+{
+  "schema_version": "1.0",
+  "recovery_policies": {
+    "restart": {
+      "description": "进程重启策略",
+      "max_attempts": 3,
+      "backoff_seconds": [5, 15, 60],
+      "applicable_levels": ["P0", "P1"],
+      "pre_conditions": ["process_not_responding", "memory_leak_detected"],
+      "post_verification": ["health_check_pass", "ready_probe_pass"]
+    },
+    "retry": {
+      "description": "指数退避重试策略",
+      "max_attempts": 5,
+      "backoff_multiplier": 2,
+      "initial_delay_ms": 1000,
+      "max_delay_ms": 30000,
+      "applicable_levels": ["P1", "P2"],
+      "retryable_errors": ["timeout", "rate_limit", "transient_failure"]
+    },
+    "fallback": {
+      "description": "降级兜底策略",
+      "options": [
+        "use_cached_response",
+        "simplified_output",
+        "async_defer"
+      ],
+      "applicable_levels": ["P1", "P2", "P3"],
+      "max_degradation_duration_minutes": 30
+    },
+    "rollback": {
+      "description": "版本回滚策略",
+      "trigger": {
+        "error_rate_threshold": 0.1,
+        "window_minutes": 5
+      },
+      "max_rollback_versions": 3,
+      "verification_time_seconds": 60,
+      "applicable_levels": ["P0"]
+    }
+  },
+  "escalation_matrix": {
+    "P0": {
+      "auto_action": ["restart", "rollback"],
+      "notify": ["oncall", "team_lead"],
+      "page": true
+    },
+    "P1": {
+      "auto_action": ["retry", "fallback"],
+      "notify": ["oncall"],
+      "page": false
+    },
+    "P2": {
+      "auto_action": ["fallback"],
+      "notify": ["team_channel"],
+      "page": false
+    },
+    "P3": {
+      "auto_action": [],
+      "notify": ["team_channel"],
+      "page": false
+    }
+  }
+}
