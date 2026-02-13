@@ -1,0 +1,24 @@
+# aggregation与multi优化 (P021 R31-40)
+
+## 1. 分组范围
+- 覆盖文件数: 10
+- R编号范围: R31-40
+- 代表主题: Multi-Engine Search Aggregation with Rate Limiting and Result Deduplication: Practical Implementation
+- 关键词: aggregation, multi, engine, search, and
+
+## 2. 关键洞察
+- **Deduplication**: Combine URL canonicalization, MinHash LSH for near-duplicates, and semantic similarity for comprehensive deduplication.
+- **Resilience**: Adaptive circuit breakers with pattern detection outperform static thresholds. Bulkhead isolation prevents cascade failures.
+- **Performance**: Streaming aggregation reduces latency. Memory-mapped caching enables large-scale caching beyond RAM.
+- **Cost Control**: Smart caching and query routing can reduce API costs by 60-80% while maintaining quality.
+
+## 3. 可落地优化方案
+- 分层记忆与上下文压缩：短期上下文摘要化、长期记忆索引化，提供可回滚的记忆巩固流程
+- 多引擎路由与成本感知：按查询意图选择引擎，加入成本上限与质量回退策略
+- 性能与超时控制：设定分层超时与尾部延迟保护，支持部分结果快速返回
+- 可靠性防护：熔断、退避重试、故障隔离与降级策略联动
+- 质量评估闭环：定义离线评测集与线上指标，建立策略灰度与对照实验
+- 多租户与配额治理：配额池+租户限流，支持优先级与账单可追溯
+- 核心流程标准化：输入规范化、意图识别、工具选择、结果合成形成可复用流水线
+- 数据与配置热更新：配置变更可追踪、可回滚，控制台实时生效
+- 异常样本回流：失败与低质量样本进入专项训练与修复队列
