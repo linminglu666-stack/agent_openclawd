@@ -1,0 +1,10 @@
+[
+  {
+    "name": "risk_scorer_owner",
+    "capability": "风险评分与审批触发",
+    "version": "v1",
+    "inputs": ["command", "context"],
+    "outputs": ["risk_score", "decision"],
+    "tags": ["risk", "approval"]
+  }
+]

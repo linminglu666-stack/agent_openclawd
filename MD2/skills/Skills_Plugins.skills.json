@@ -1,0 +1,10 @@
+[
+  {
+    "name": "skill_registry_owner",
+    "capability": "技能注册与发现",
+    "version": "v1",
+    "inputs": ["registry", "capability"],
+    "outputs": ["discoveries", "selected_skill"],
+    "tags": ["skills", "registry"]
+  }
+]

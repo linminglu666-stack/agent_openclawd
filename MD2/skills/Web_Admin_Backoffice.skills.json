@@ -1,0 +1,10 @@
+[
+  {
+    "name": "web_admin_owner",
+    "capability": "后台可视化与交互",
+    "version": "v1",
+    "inputs": ["page_map", "metrics"],
+    "outputs": ["ui_components", "charts"],
+    "tags": ["web", "admin", "ui"]
+  }
+]

@@ -1,0 +1,10 @@
+[
+  {
+    "name": "eval_gate_owner",
+    "capability": "评估协议与决策",
+    "version": "v1",
+    "inputs": ["snapshot", "metrics"],
+    "outputs": ["decision", "evidence"],
+    "tags": ["eval", "gate"]
+  }
+]

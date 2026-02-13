@@ -1,0 +1,31 @@
+[Unit]
+Description=OpenClaw-X BFF Service
+After=network.target
+
+[Service]
+Type=notify
+User=@OPENCLAW_USER@
+Group=@OPENCLAW_GROUP@
+EnvironmentFile=-/etc/openclaw-x/openclaw-x.env
+WorkingDirectory=@OPENCLAW_CODE_DIR@
+ExecStartPre=/usr/bin/test -d @OPENCLAW_CODE_DIR@
+ExecStart=/usr/bin/python3 -m services.bff_service
+Restart=on-failure
+RestartSec=2
+StartLimitIntervalSec=0
+TimeoutStartSec=30
+TimeoutStopSec=60
+KillSignal=SIGTERM
+NotifyAccess=main
+WatchdogSec=30
+StateDirectory=openclaw-x
+LogsDirectory=openclaw-x
+RuntimeDirectory=openclaw-x
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+
+[Install]
+WantedBy=multi-user.target
+

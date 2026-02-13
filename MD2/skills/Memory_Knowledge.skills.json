@@ -1,0 +1,10 @@
+[
+  {
+    "name": "memory_governance_owner",
+    "capability": "记忆索引与治理",
+    "version": "v1",
+    "inputs": ["entries", "keywords"],
+    "outputs": ["index", "summary"],
+    "tags": ["memory", "knowledge"]
+  }
+]

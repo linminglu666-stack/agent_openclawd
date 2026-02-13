@@ -1,0 +1,19 @@
+[
+  {
+    "name": "scheduler_engine_owner",
+    "capability": "schedule-only 触发与策略",
+    "version": "v1",
+    "inputs": ["policy_json", "schedules"],
+    "outputs": ["next_fire_at", "trigger_log"],
+    "tags": ["scheduler", "policy", "trigger"],
+    "constraints": ["no_cron"]
+  },
+  {
+    "name": "orchestrator_dag_owner",
+    "capability": "DAG 执行与审批闭环",
+    "version": "v1",
+    "inputs": ["dag_schema", "run_context"],
+    "outputs": ["run_snapshot", "events"],
+    "tags": ["orchestrator", "dag", "approval"]
+  }
+]

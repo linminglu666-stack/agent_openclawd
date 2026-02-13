@@ -1,0 +1,10 @@
+[
+  {
+    "name": "config_governance_owner",
+    "capability": "配置版本化与回滚",
+    "version": "v1",
+    "inputs": ["config_version", "diff"],
+    "outputs": ["validated_config", "rollback_plan"],
+    "tags": ["config", "flags", "rollback"]
+  }
+]

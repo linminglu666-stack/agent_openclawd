@@ -1,0 +1,270 @@
+{
+  "generated_at": "2026-02-12T04:25:38.982536",
+  "skills": {
+    "auth_rbac_owner": {
+      "v1": {
+        "name": "auth_rbac_owner",
+        "version": "v1",
+        "capability": "鉴权与权限治理",
+        "inputs": [
+          "claims",
+          "policy"
+        ],
+        "outputs": [
+          "decision",
+          "audit_log"
+        ],
+        "tags": [
+          "auth",
+          "rbac",
+          "audit"
+        ],
+        "constraints": [],
+        "source_file": "Auth_RBAC.skills.json",
+        "checksum_sha256": "b62838b7a05c666354c708561bd6adbaf0e0954a84680c62e9e4e011a9093ba4",
+        "status": "enabled"
+      }
+    },
+    "config_governance_owner": {
+      "v1": {
+        "name": "config_governance_owner",
+        "version": "v1",
+        "capability": "配置版本化与回滚",
+        "inputs": [
+          "config_version",
+          "diff"
+        ],
+        "outputs": [
+          "validated_config",
+          "rollback_plan"
+        ],
+        "tags": [
+          "config",
+          "flags",
+          "rollback"
+        ],
+        "constraints": [],
+        "source_file": "Config_Rollback.skills.json",
+        "checksum_sha256": "83e33e4e0fdcb8accb228d7ca7bb2780a50d1f3cc961e80b63a2f8ff2705f261",
+        "status": "enabled"
+      }
+    },
+    "eval_gate_owner": {
+      "v1": {
+        "name": "eval_gate_owner",
+        "version": "v1",
+        "capability": "评估协议与决策",
+        "inputs": [
+          "snapshot",
+          "metrics"
+        ],
+        "outputs": [
+          "decision",
+          "evidence"
+        ],
+        "tags": [
+          "eval",
+          "gate"
+        ],
+        "constraints": [],
+        "source_file": "Eval_Gate.skills.json",
+        "checksum_sha256": "2809447016f417ffae82ad0acc8e327b392d977bee83d9bc2ef4a38a24272b73",
+        "status": "enabled"
+      }
+    },
+    "kernel_adapter_owner": {
+      "v1": {
+        "name": "kernel_adapter_owner",
+        "version": "v1",
+        "capability": "接口固化与适配层治理",
+        "inputs": [
+          "contract",
+          "compat_map"
+        ],
+        "outputs": [
+          "adapter_impl",
+          "compat_report"
+        ],
+        "tags": [
+          "kernel",
+          "adapter",
+          "contract"
+        ],
+        "constraints": [
+          "no_business_logic"
+        ],
+        "source_file": "Kernel.skills.json",
+        "checksum_sha256": "519a55a21b13924203ce4806ff3a12d32c035d8af2591e14f8333534b03f0151",
+        "status": "enabled"
+      }
+    },
+    "memory_governance_owner": {
+      "v1": {
+        "name": "memory_governance_owner",
+        "version": "v1",
+        "capability": "记忆索引与治理",
+        "inputs": [
+          "entries",
+          "keywords"
+        ],
+        "outputs": [
+          "index",
+          "summary"
+        ],
+        "tags": [
+          "memory",
+          "knowledge"
+        ],
+        "constraints": [],
+        "source_file": "Memory_Knowledge.skills.json",
+        "checksum_sha256": "26efaea8a66d2674aafb3d694bd1ca7f4736c0804023533fdb6fa87a57a64deb",
+        "status": "enabled"
+      }
+    },
+    "observability_owner": {
+      "v1": {
+        "name": "observability_owner",
+        "version": "v1",
+        "capability": "指标/日志/Trace 体系构建",
+        "inputs": [
+          "events",
+          "metrics",
+          "trace_id"
+        ],
+        "outputs": [
+          "dashboards",
+          "alerts"
+        ],
+        "tags": [
+          "observability",
+          "metrics",
+          "trace"
+        ],
+        "constraints": [],
+        "source_file": "Observability_Trace.skills.json",
+        "checksum_sha256": "a98a7867b55c61df9d7be8c2f211a265eba9e2875a640a5f8ce05acd1205bce8",
+        "status": "enabled"
+      }
+    },
+    "risk_scorer_owner": {
+      "v1": {
+        "name": "risk_scorer_owner",
+        "version": "v1",
+        "capability": "风险评分与审批触发",
+        "inputs": [
+          "command",
+          "context"
+        ],
+        "outputs": [
+          "risk_score",
+          "decision"
+        ],
+        "tags": [
+          "risk",
+          "approval"
+        ],
+        "constraints": [],
+        "source_file": "Risk_Scorer.skills.json",
+        "checksum_sha256": "e665b9211c86cd3db10abec4563159c261249641a323168ba4336266860b1ca8",
+        "status": "enabled"
+      }
+    },
+    "scheduler_engine_owner": {
+      "v1": {
+        "name": "scheduler_engine_owner",
+        "version": "v1",
+        "capability": "schedule-only 触发与策略",
+        "inputs": [
+          "policy_json",
+          "schedules"
+        ],
+        "outputs": [
+          "next_fire_at",
+          "trigger_log"
+        ],
+        "tags": [
+          "scheduler",
+          "policy",
+          "trigger"
+        ],
+        "constraints": [
+          "no_cron"
+        ],
+        "source_file": "Scheduler_Orchestrator.skills.json",
+        "checksum_sha256": "e67d41e1dc96c1efe5539a20c2c95f948446b1010674ad317bdc05f6bdacde7e",
+        "status": "enabled"
+      }
+    },
+    "orchestrator_dag_owner": {
+      "v1": {
+        "name": "orchestrator_dag_owner",
+        "version": "v1",
+        "capability": "DAG 执行与审批闭环",
+        "inputs": [
+          "dag_schema",
+          "run_context"
+        ],
+        "outputs": [
+          "run_snapshot",
+          "events"
+        ],
+        "tags": [
+          "orchestrator",
+          "dag",
+          "approval"
+        ],
+        "constraints": [],
+        "source_file": "Scheduler_Orchestrator.skills.json",
+        "checksum_sha256": "e67d41e1dc96c1efe5539a20c2c95f948446b1010674ad317bdc05f6bdacde7e",
+        "status": "enabled"
+      }
+    },
+    "skill_registry_owner": {
+      "v1": {
+        "name": "skill_registry_owner",
+        "version": "v1",
+        "capability": "技能注册与发现",
+        "inputs": [
+          "registry",
+          "capability"
+        ],
+        "outputs": [
+          "discoveries",
+          "selected_skill"
+        ],
+        "tags": [
+          "skills",
+          "registry"
+        ],
+        "constraints": [],
+        "source_file": "Skills_Plugins.skills.json",
+        "checksum_sha256": "04f37222a5a20648df9368fd0ffdc4090077abe8461d8dcc7d0dd534137e73df",
+        "status": "enabled"
+      }
+    },
+    "web_admin_owner": {
+      "v1": {
+        "name": "web_admin_owner",
+        "version": "v1",
+        "capability": "后台可视化与交互",
+        "inputs": [
+          "page_map",
+          "metrics"
+        ],
+        "outputs": [
+          "ui_components",
+          "charts"
+        ],
+        "tags": [
+          "web",
+          "admin",
+          "ui"
+        ],
+        "constraints": [],
+        "source_file": "Web_Admin_Backoffice.skills.json",
+        "checksum_sha256": "774ff7e75fb96301b553ba236c1ea1249402151507772d56071441980055838f",
+        "status": "enabled"
+      }
+    }
+  }
+}

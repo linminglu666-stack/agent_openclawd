@@ -1,0 +1,10 @@
+[
+  {
+    "name": "auth_rbac_owner",
+    "capability": "鉴权与权限治理",
+    "version": "v1",
+    "inputs": ["claims", "policy"],
+    "outputs": ["decision", "audit_log"],
+    "tags": ["auth", "rbac", "audit"]
+  }
+]

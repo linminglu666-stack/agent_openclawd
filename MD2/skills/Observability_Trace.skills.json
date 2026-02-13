@@ -1,0 +1,10 @@
+[
+  {
+    "name": "observability_owner",
+    "capability": "指标/日志/Trace 体系构建",
+    "version": "v1",
+    "inputs": ["events", "metrics", "trace_id"],
+    "outputs": ["dashboards", "alerts"],
+    "tags": ["observability", "metrics", "trace"]
+  }
+]

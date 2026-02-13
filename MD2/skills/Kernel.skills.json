@@ -1,0 +1,11 @@
+[
+  {
+    "name": "kernel_adapter_owner",
+    "capability": "接口固化与适配层治理",
+    "version": "v1",
+    "inputs": ["contract", "compat_map"],
+    "outputs": ["adapter_impl", "compat_report"],
+    "tags": ["kernel", "adapter", "contract"],
+    "constraints": ["no_business_logic"]
+  }
+]
